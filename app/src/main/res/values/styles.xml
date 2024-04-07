@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">#F4C697</item> <!-- Light brown -->
+        <item name="colorPrimaryVariant">#D2B48C</item> <!-- Light brown variant -->
+        <item name="colorOnPrimary">#FFFFFF</item> <!-- White -->
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">#FFFFFF</item> <!-- White -->
+        <item name="colorSecondaryVariant">#F5F5F5</item> <!-- Light gray -->
+        <item name="colorOnSecondary">#000000</item> <!-- Black -->
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" tools:targetApi="l">#D2B48C</item> <!-- Light brown -->
+        <!-- Background color -->
+        <item name="android:windowBackground">#F4C697</item> <!-- Light peach -->
+
+        <!-- Text color -->
+        <item name="android:textColor">#000000</item> <!-- Black -->
+    </style>
+
+    <!-- Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="light_brown">#8B4513</color>
+    <color name="light_brown_variant">#D2B48C</color>
+    <color name="light_gray">#F5F5F5</color>
+    <color name="light_peach">#F4C697</color> <!-- Light peach -->
+</resources>
