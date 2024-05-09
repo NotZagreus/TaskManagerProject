@@ -1,18 +1,23 @@
 package com.example.taskmanagerapp
 
+import TaskDbHelper
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.ListView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+
+import androidx.lifecycle.Observer
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 
 class TaskListFragment : Fragment() {
 
-    private lateinit var taskListView: ListView
+    private lateinit var taskRecyclerView: RecyclerView
     private lateinit var taskList: MutableList<Task>
-    private lateinit var taskAdapter: ArrayAdapter<Task>
+    private lateinit var taskAdapter: TaskAdapter
+    private val sharedViewModel: SharedViewModel by viewModels({ requireActivity() })
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -20,44 +25,61 @@ class TaskListFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_task_list, container, false)
 
-        taskListView = view.findViewById(R.id.taskListView)
+        taskRecyclerView = view.findViewById(R.id.taskRecyclerView)
         taskList = mutableListOf()
-        taskAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, taskList)
-        taskListView.adapter = taskAdapter
-
-        loadTasksFromFile()
+        taskAdapter = TaskAdapter(requireContext(), taskList)
+        taskRecyclerView.adapter = taskAdapter
+        taskRecyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         return view
     }
 
-    private fun loadTasksFromFile() {
-        val tasks = mutableListOf<Task>()
-        val filename = "tasks.txt"
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        try {
-            val fileInputStream = requireContext().openFileInput(filename)
-            val inputStreamReader = fileInputStream.bufferedReader()
-            val lines = inputStreamReader.readLines()
-            inputStreamReader.close()
+        sharedViewModel.tasks.observe(viewLifecycleOwner, Observer { tasks ->
+            taskList.clear()
+            taskList.addAll(tasks)
+            taskAdapter.notifyDataSetChanged()
+        })
 
-            for (line in lines) {
-                val parts = line.split(", ")
-                if (parts.size == 4) {
-                    val task = Task(parts[0], parts[1], parts[2], parts[3])
-                    tasks.add(task)
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        taskList.clear()
-        taskList.addAll(tasks)
-        taskAdapter.notifyDataSetChanged()
+        loadTasksFromDatabase()
     }
 
-    fun addTaskToList(task: Task) {
-        taskList.add(task)
-        taskAdapter.notifyDataSetChanged()
+    private fun loadTasksFromDatabase() {
+        val dbHelper = TaskDbHelper(requireContext())
+        val db = dbHelper.readableDatabase
+
+        val projection = arrayOf(
+            TaskContract.TaskEntry.COLUMN_CREATION_TIME,
+            TaskContract.TaskEntry.COLUMN_DUE_TIME,
+            TaskContract.TaskEntry.COLUMN_CREATOR_NAME,
+            TaskContract.TaskEntry.COLUMN_TASK_DESCRIPTION
+        )
+
+        val cursor = db.query(
+            TaskContract.TaskEntry.TABLE_NAME,
+            projection,
+            null,
+            null,
+            null,
+            null,
+            null
+        )
+
+        val tasks = mutableListOf<Task>()
+        with(cursor) {
+            while (moveToNext()) {
+                val creationTime = getString(getColumnIndexOrThrow(TaskContract.TaskEntry.COLUMN_CREATION_TIME))
+                val dueTime = getString(getColumnIndexOrThrow(TaskContract.TaskEntry.COLUMN_DUE_TIME))
+                val creatorName = getString(getColumnIndexOrThrow(TaskContract.TaskEntry.COLUMN_CREATOR_NAME))
+                val taskDescription = getString(getColumnIndexOrThrow(TaskContract.TaskEntry.COLUMN_TASK_DESCRIPTION))
+                tasks.add(Task(creationTime, dueTime, creatorName, taskDescription))
+            }
+        }
+
+        cursor.close()
+
+        sharedViewModel.updateTasks(tasks)
     }
 }

@@ -1,8 +1,9 @@
 package com.example.taskmanagerapp
 
+import TaskDbHelper
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.content.Context
+import android.content.ContentValues
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,13 +12,15 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import java.io.ObjectOutputStream
+import androidx.fragment.app.viewModels
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 class AddTaskFragment : Fragment() {
+
+    private val sharedViewModel: SharedViewModel by viewModels({ requireActivity() })
 
     private lateinit var editTextDueTime: EditText
     private lateinit var editTextCreatorName: EditText
@@ -95,22 +98,33 @@ class AddTaskFragment : Fragment() {
             return
         }
 
-        // TODO: Create a Task object with the retrieved values including currentDateTime and add it to a list or database
+        val dbHelper = TaskDbHelper(requireContext())
+        val db = dbHelper.writableDatabase
+
+        val values = ContentValues().apply {
+            put(TaskContract.TaskEntry.COLUMN_CREATION_TIME, currentDateTime)
+            put(TaskContract.TaskEntry.COLUMN_DUE_TIME, dueTime)
+            put(TaskContract.TaskEntry.COLUMN_CREATOR_NAME, creatorName)
+            put(TaskContract.TaskEntry.COLUMN_TASK_DESCRIPTION, taskDescription)
+        }
+
+        val newRowId = db?.insert(TaskContract.TaskEntry.TABLE_NAME, null, values)
+
+        // Close the database connection
+        dbHelper.close()
 
         // Clear input fields after adding task
         editTextDueTime.text.clear()
         editTextCreatorName.text.clear()
         editTextTaskDescription.text.clear()
 
-        Toast.makeText(requireContext(), "Task added successfully", Toast.LENGTH_SHORT).show()
+        if (newRowId != null && newRowId > -1) {
+            val databaseUtils = DatabaseUtils()
+            val tasks = databaseUtils.loadTasksFromDatabase(requireContext())
+            sharedViewModel.updateTasks(tasks)
+            Toast.makeText(requireContext(), "Task added successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(requireContext(), "Error adding task", Toast.LENGTH_SHORT).show()
+        }
     }
-//
-//    private fun writeTaskToFile(task: Task) {
-//        val fileName = "tasks.txt"
-//        val fileOutput = requireContext().openFileOutput(fileName, Context.MODE_APPEND)
-//        val objectOutput = ObjectOutputStream(fileOutput)
-//        objectOutput.writeObject(task)
-//        objectOutput.close()
-//        fileOutput.close()
-//    }
 }
